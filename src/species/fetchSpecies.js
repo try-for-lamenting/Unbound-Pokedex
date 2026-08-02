@@ -165,27 +165,9 @@ function randomizeSpecies(trainerIdFull, trainerId, trainerSecretId, bannedSpeci
 	return newSpecies;
 }
 
-// These baby Pokémon require an Incense to be the normal egg result.  Without
-// one, breeding their evolution produces the listed species instead.
-const eggSpeciesWithoutIncense = {
-	SPECIES_ROSELIA: "SPECIES_ROSELIA",
-	SPECIES_CHIMECHO: "SPECIES_CHIMECHO",
-	SPECIES_SNORLAX: "SPECIES_SNORLAX",
-	SPECIES_WOBBUFFET: "SPECIES_WOBBUFFET",
-	SPECIES_MARILL: "SPECIES_MARILL",
-	SPECIES_SUDOWOODO: "SPECIES_SUDOWOODO",
-	SPECIES_CHANSEY: "SPECIES_CHANSEY",
-	SPECIES_MR_MIME: "SPECIES_MR_MIME",
-	SPECIES_JYNX: "SPECIES_JYNX",
-	SPECIES_ELECTABUZZ: "SPECIES_ELECTABUZZ",
-	SPECIES_MAGMAR: "SPECIES_MAGMAR",
-	SPECIES_MANTINE: "SPECIES_MANTINE"
-};
-
 function getNormalEggSpecies(name, species) {
-	if (eggSpeciesWithoutIncense[name]) {
-		return eggSpeciesWithoutIncense[name];
-	}
+	// The first member of the evolution line is the actual egg species. It can
+	// be a baby Pokémon that is itself unable to breed (for example, Magby).
 	const evolutionLine = species[name].evolutionLine || [name];
 	return evolutionLine.find(candidate => species[candidate] && species[candidate].baseHP > 0) || name;
 }
@@ -289,7 +271,7 @@ async function applyEnhancements(species) {
 		Object.keys(species).forEach(name => {
 			const pokemon = species[name];
 			pokemon.bredFrom = [];
-			pokemon.breedingCalculationVersion = 4;
+			pokemon.breedingCalculationVersion = 5;
 			if (!canBreed(name, pokemon) || !isInSpeciesRandomizerPool(pokemon, speciesCount)) {
 				return;
 			}
@@ -469,7 +451,7 @@ async function fetchSpeciesObj(){
         window.species = await JSON.parse(LZString.decompressFromUTF16(localStorage.getItem("species")))
         // Cached species data predating breeding-route support has no derived
         // breeding graph. Rebuild it once rather than silently hiding the UI.
-        if (settings.includes("saveRandomizedSpecies") && window.species["SPECIES_BULBASAUR"]?.breedingCalculationVersion !== 4) {
+        if (settings.includes("saveRandomizedSpecies") && window.species["SPECIES_BULBASAUR"]?.breedingCalculationVersion !== 5) {
             window.species = await buildSpeciesObj()
         }
     }

@@ -165,6 +165,43 @@ function randomizeSpecies(trainerIdFull, trainerId, trainerSecretId, bannedSpeci
 	return newSpecies;
 }
 
+// These baby Pokémon require an Incense to be the normal egg result.  Without
+// one, breeding their evolution produces the listed species instead.
+const eggSpeciesWithoutIncense = {
+	SPECIES_ROSELIA: "SPECIES_ROSELIA",
+	SPECIES_CHIMECHO: "SPECIES_CHIMECHO",
+	SPECIES_SNORLAX: "SPECIES_SNORLAX",
+	SPECIES_WOBBUFFET: "SPECIES_WOBBUFFET",
+	SPECIES_MARILL: "SPECIES_MARILL",
+	SPECIES_SUDOWOODO: "SPECIES_SUDOWOODO",
+	SPECIES_CHANSEY: "SPECIES_CHANSEY",
+	SPECIES_MR_MIME: "SPECIES_MR_MIME",
+	SPECIES_JYNX: "SPECIES_JYNX",
+	SPECIES_ELECTABUZZ: "SPECIES_ELECTABUZZ",
+	SPECIES_MAGMAR: "SPECIES_MAGMAR",
+	SPECIES_MANTINE: "SPECIES_MANTINE"
+};
+
+function getNormalEggSpecies(name, species) {
+	if (eggSpeciesWithoutIncense[name]) {
+		return eggSpeciesWithoutIncense[name];
+	}
+	const evolutionLine = species[name].evolutionLine || [name];
+	return evolutionLine.find(candidate => species[candidate] && species[candidate].baseHP > 0) || name;
+}
+
+function canBreed(name, pokemon) {
+	return pokemon.baseHP > 0
+		&& pokemon.name !== "SPECIES_DITTO"
+		&& !/_(?:MEGA(?:_[XY])?|GIGA)$/.test(name)
+		&& pokemon.eggGroup1 !== "EGG_GROUP_UNDISCOVERED"
+		&& pokemon.eggGroup2 !== "EGG_GROUP_UNDISCOVERED";
+}
+
+function isInSpeciesRandomizerPool(pokemon, speciesCount) {
+	return pokemon && pokemon.ID > 0 && pokemon.ID < speciesCount;
+}
+
 function rebalanceStat(statBase, pokemon) {
 	return Math.min(Math.floor((statBase * (600 - pokemon.baseHP)) / (pokemon.BST - pokemon.baseHP)), 0xFF);
 }
@@ -242,10 +279,33 @@ async function applyEnhancements(species) {
 			return null;
 		}).filter(id => id !== null));
 		const gen8Unlocked = settings.includes("saveGen8Unlocked");
+		const speciesCount = species[gen8Unlocked ? "SPECIES_ENAMORUS_THERIAN" : "SPECIES_XERNEAS_NATURAL"].ID + 1;
 		Object.keys(species).forEach(name => {
 			const pokemon = species[name];
 			if (pokemon.ID > 0 && pokemon.baseHP > 0) {
 				pokemon.randomized = randomizeSpecies(trainerIdFull, trainerId, trainerSecretId, bannedSpeciesIds, speciesById, pokemon.ID, species, gen8Unlocked);
+			}
+		});
+		Object.keys(species).forEach(name => {
+			const pokemon = species[name];
+			pokemon.bredFrom = [];
+			pokemon.breedingCalculationVersion = 4;
+			if (!canBreed(name, pokemon) || !isInSpeciesRandomizerPool(pokemon, speciesCount)) {
+				return;
+			}
+			pokemon.breedingEggSpecies = getNormalEggSpecies(name, species);
+			const eggSpecies = species[pokemon.breedingEggSpecies];
+			if (!isInSpeciesRandomizerPool(eggSpecies, speciesCount)) {
+				return;
+			}
+			// Reuse the already-calculated randomizer links so this progression
+			// exactly matches the species table, including its ban-list rerolls.
+			pokemon.breedingFirstPass = eggSpecies.randomized;
+			if (pokemon.breedingFirstPass && isInSpeciesRandomizerPool(species[pokemon.breedingFirstPass], speciesCount)) {
+				pokemon.breedingResult = species[pokemon.breedingFirstPass].randomized;
+			}
+			if (pokemon.breedingResult && isInSpeciesRandomizerPool(species[pokemon.breedingResult], speciesCount)) {
+				species[pokemon.breedingResult].bredFrom.push(name);
 			}
 		});
 	}
@@ -392,6 +452,11 @@ function initializeSpeciesObj(species){
         species[name]["forms"] = []
         species[name]["sprite"] = ""
         species[name]["randomized"] = ""
+		species[name]["breedingEggSpecies"] = ""
+		species[name]["breedingFirstPass"] = ""
+		species[name]["breedingResult"] = ""
+		species[name]["bredFrom"] = []
+		species[name]["breedingCalculationVersion"] = 0
     }
     return species
 }
@@ -400,8 +465,14 @@ function initializeSpeciesObj(species){
 async function fetchSpeciesObj(){
     if(!localStorage.getItem("species"))
         window.species = await buildSpeciesObj()
-    else
+    else {
         window.species = await JSON.parse(LZString.decompressFromUTF16(localStorage.getItem("species")))
+        // Cached species data predating breeding-route support has no derived
+        // breeding graph. Rebuild it once rather than silently hiding the UI.
+        if (settings.includes("saveRandomizedSpecies") && window.species["SPECIES_BULBASAUR"]?.breedingCalculationVersion !== 4) {
+            window.species = await buildSpeciesObj()
+        }
+    }
 
 
     window.sprites = {}

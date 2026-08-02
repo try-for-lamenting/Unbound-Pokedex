@@ -1,1 +1,9 @@
 @import url(https://ydarissep.github.io/dex-core/style/speciesTable.css);
+
+.randomizedSpeciesMapping {
+    color: #7d3c98;
+    font-size: 0.8em;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 2px;
+}

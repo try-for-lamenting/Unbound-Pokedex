@@ -1,1 +1,55 @@
 @import url(https://ydarissep.github.io/dex-core/style/speciesPanel.css);
+
+#randomizedSpeciesPanelContainer {
+    margin-top: 12px;
+}
+
+.randomizedSpeciesPanelRow {
+    padding: 2px 0 2px 15px;
+}
+
+.randomizedSpeciesPanelLink {
+    background: none;
+    border: 0;
+    color: #bb86fc;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    padding: 0;
+    text-decoration: underline;
+    width: auto;
+}
+
+.randomizedSpeciesPanelLink:hover {
+    color: #e1c3ff;
+}
+
+.randomizedSpeciesBreedingRule {
+    margin: 6px 0 4px 15px;
+}
+
+.randomizedSpeciesBreedingRule summary {
+    color: #bb86fc;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.randomizedSpeciesBreedingRule div {
+    font-size: 0.9em;
+    line-height: 1.35;
+    margin-top: 4px;
+}
+
+.randomizedSpeciesBreedingCalculation {
+    font-size: 0.9em;
+    margin: 2px 0 0 8px;
+}
+
+.randomizedSpeciesAcquisition {
+    margin-top: 8px;
+}
+
+.randomizedSpeciesAcquisitionPath {
+    line-height: 1.45;
+    padding: 2px 0 2px 15px;
+}
